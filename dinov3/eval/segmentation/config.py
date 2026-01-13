@@ -118,6 +118,7 @@ class EvalConfig:
     stride: int | None = 341
     eval_interval: int = 40000
     use_tta: bool = False  # apply test-time augmentation at evaluation time
+    max_val_samples: int = 0  # 0 means no limit, useful for smoke tests
 
 
 @dataclass

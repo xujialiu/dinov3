@@ -18,9 +18,18 @@ from torch.nn.init import constant_, xavier_uniform_
 try:
     import MultiScaleDeformableAttention as MSDA
 except ImportError:
-    # if we just care about inference, we don't need
-    # the compiled extension for multi-scale deformable attention
-    MSDA = None
+    # Try importing from the ops directory where it's compiled
+    import sys
+    import os
+    ops_dir = os.path.join(os.path.dirname(__file__), "ops")
+    if ops_dir not in sys.path:
+        sys.path.insert(0, ops_dir)
+    try:
+        import MultiScaleDeformableAttention as MSDA
+    except ImportError:
+        # if we just care about inference, we don't need
+        # the compiled extension for multi-scale deformable attention
+        MSDA = None
 
 
 class MSDeformAttnFunction(Function):

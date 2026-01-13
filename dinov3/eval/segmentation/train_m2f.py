@@ -81,7 +81,7 @@ def collate_m2f_batch(batch):
     - Keeps targets as a list of dicts
 
     Args:
-        batch: List of ((image, target_dict), (index, _)) from DatasetWithEnumeratedTargets
+        batch: List of (image, (index, target_dict)) from DatasetWithEnumeratedTargets
 
     Returns:
         (images, targets): images [B, C, H, W], targets List[dict]
@@ -90,13 +90,13 @@ def collate_m2f_batch(batch):
     targets = []
 
     for item in batch:
-        # Handle DatasetWithEnumeratedTargets wrapping: ((img, target), (idx, _))
-        if isinstance(item[0], tuple):
-            img, target = item[0]
-        else:
-            img, target = item
+        # DatasetWithEnumeratedTargets returns: (image, (index, target))
+        # We need to extract the target dict from the (index, target) tuple
+        image = item[0]
+        index_and_target = item[1]
+        target = index_and_target[1]  # Extract target dict from (index, target)
 
-        images.append(img)
+        images.append(image)
         targets.append(target)
 
     return torch.stack(images, dim=0), targets
@@ -113,6 +113,7 @@ def validate_m2f(
     global_step,
     metric_to_save,
     current_best_metric_to_save_value,
+    max_val_samples: int = 0,  # 0 means no limit
 ):
     """Run validation and return metrics.
 
@@ -127,6 +128,7 @@ def validate_m2f(
         decoder_head_type="m2f",  # Hardcoded for M2F
         num_classes=num_classes,
         autocast_dtype=autocast_dtype,
+        max_samples=max_val_samples,
     )
     logger.info(f"Step {global_step}: {new_metric_values_dict}")
     # Put decoder back in train mode (backbone stays in eval mode)
@@ -342,7 +344,7 @@ def train_m2f_segmentation(backbone, config):
         class_coefficient=config.m2f_train.class_coefficient,
         num_labels=config.decoder_head.num_classes,
         no_object_coefficient=config.m2f_train.no_object_coefficient,
-    )
+    ).to(local_device)  # Move to GPU for empty_weight buffer
 
     total_iter = config.scheduler.total_iter
     global_step = 0
@@ -389,6 +391,7 @@ def train_m2f_segmentation(backbone, config):
                 global_step,
                 config.metric_to_save,
                 global_best_metric_values[config.metric_to_save],
+                max_val_samples=config.eval.max_val_samples,
             )
             if is_better:
                 logger.info(f"New best metrics at Step {global_step}: {best_metric_values_dict}")
@@ -407,6 +410,7 @@ def train_m2f_segmentation(backbone, config):
             global_step,
             config.metric_to_save,
             global_best_metric_values[config.metric_to_save],
+            max_val_samples=config.eval.max_val_samples,
         )
         if is_better:
             logger.info(f"New best metrics at Step {global_step}: {best_metric_values_dict}")

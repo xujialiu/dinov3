@@ -35,13 +35,16 @@ def evaluate_segmentation_model(
     decoder_head_type,
     num_classes,
     autocast_dtype,
+    max_samples: int = 0,  # 0 means no limit
 ):
     segmentation_model = segmentation_model.to(device)
     segmentation_model.eval()
     all_metric_values = []
     metric_logger = MetricLogger(delimiter="  ")
 
-    for batch_img, (_, gt) in metric_logger.log_every(test_dataloader, 10, header="Validation: "):
+    for sample_idx, (batch_img, (_, gt)) in enumerate(metric_logger.log_every(test_dataloader, 10, header="Validation: ")):
+        if max_samples > 0 and sample_idx >= max_samples:
+            break
         batch_img = [img.to(device).to(dtype=autocast_dtype) for img in batch_img]
         gt = gt.to(device)[0]
         aggregated_preds = torch.zeros(1, num_classes, gt.shape[-2], gt.shape[-1])

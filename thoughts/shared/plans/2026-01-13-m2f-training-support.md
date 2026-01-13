@@ -1149,7 +1149,9 @@ conda activate dinov3 && PYTHONPATH=. python dinov3/eval/segmentation/run.py \
 
 ---
 
-## Phase 4: Model Building & Checkpoint Verification
+## Phase 4: Model Building & Checkpoint Verification ✅ COMPLETED
+
+**Completed**: 2026-01-13
 
 ### Overview
 Verify that `build_segmentation_decoder` properly handles training mode for M2F, allowing gradients through adapter layers while keeping backbone frozen. Also verify checkpoint saving/loading works correctly.
@@ -1302,7 +1304,15 @@ print('All Phase 4 tests passed!')
 "
 ```
 
-**Implementation Note**: After completing this phase and all automated verification passes, the implementation is complete.
+**Implementation Note**: ~~After completing this phase and all automated verification passes, the implementation is complete.~~
+
+**Status**: Phase 4 completed successfully. All verification tests passed:
+- ✅ Backbone parameters have no gradients (frozen) - verified with mock backbone
+- ✅ Interaction layers have gradients (trainable) - verified gradient flow
+- ✅ BatchNorm uses running stats (eval mode) - verified training mode behavior
+- ✅ Checkpoint filtering excludes frozen backbone weights - verified key filtering logic
+
+**No Files Modified**: This phase was verification only - the existing model building code already supports M2F training correctly.
 
 ---
 
