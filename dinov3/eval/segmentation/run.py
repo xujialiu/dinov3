@@ -30,8 +30,14 @@ def run_segmentation_with_dinov3(
     if config.load_from:
         logger.info("Testing model performance on a pretrained decoder head")
         return test_segmentation(backbone=backbone, config=config)
-    assert config.decoder_head.type == "linear", "Only linear head is supported for training"
-    return train_segmentation(backbone=backbone, config=config)
+
+    # Route to appropriate training script based on decoder type
+    if config.decoder_head.type == "m2f":
+        from dinov3.eval.segmentation.train_m2f import train_m2f_segmentation
+        return train_m2f_segmentation(backbone=backbone, config=config)
+    else:
+        assert config.decoder_head.type == "linear", f"Training only supports linear or m2f, got {config.decoder_head.type}"
+        return train_segmentation(backbone=backbone, config=config)
 
 
 def benchmark_launcher(eval_args: dict[str, object]) -> dict[str, Any]:

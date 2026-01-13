@@ -30,11 +30,19 @@ After this plan is complete:
 4. M2F training uses `MaskClassificationLoss` with deep supervision (auxiliary outputs)
 5. Training can be launched with:
    ```bash
+   # Local/single-GPU (for testing)
+   PYTHONPATH=. python dinov3/eval/segmentation/run.py \
+     config=dinov3/eval/segmentation/configs/config-ade20k-m2f-training.yaml \
+     output_dir=./output/m2f_training \
+     model.dino_hub=dinov3_vitl16 \
+     datasets.root=./ADEChallengeData2016
+
+   # SLURM cluster (for full training)
    PYTHONPATH=. python -m dinov3.run.submit dinov3/eval/segmentation/run.py \
      config=dinov3/eval/segmentation/configs/config-ade20k-m2f-training.yaml \
-     model.dino_hub=dinov3_vitl16
+     model.dino_hub=dinov3_vitl16 \
+     --output-dir /path/to/output
    ```
-   (Dataset path is preconfigured to `/data_B/xujialiu/projects/dinov3/ADEChallengeData2016`)
 
 ### Verification:
 - Config loads without errors and sets correct hyperparameters
@@ -448,7 +456,9 @@ print('\\nAll Phase 2 tests passed!')
 
 ---
 
-## Phase 3: Create Standalone train_m2f.py
+## Phase 3: Create Standalone train_m2f.py ✅ COMPLETED
+
+**Completed**: 2026-01-13
 
 ### Overview
 Create a new `train_m2f.py` script for Mask2Former training. This keeps the linear head training code (`train.py`) unchanged and avoids complexity from conditional branches.
@@ -1092,7 +1102,50 @@ print('  ✓ Linear head training code is unchanged')
 "
 ```
 
-**Implementation Note**: After completing this phase and all automated verification passes, pause here for confirmation before proceeding to the next phase.
+#### End-to-End Smoke Test (requires GPU and ADE20K dataset):
+This is the **final verification** that the complete M2F training pipeline works. Run a short training session (100 iterations) to verify all components integrate correctly.
+
+```bash
+# Single GPU smoke test - verifies complete pipeline
+conda activate dinov3 && PYTHONPATH=. python dinov3/eval/segmentation/run.py \
+    config=dinov3/eval/segmentation/configs/config-ade20k-m2f-training.yaml \
+    output_dir=./output/m2f_smoke_test \
+    model.dino_hub=dinov3_vitl16 \
+    datasets.root=./ADEChallengeData2016 \
+    scheduler.total_iter=100 \
+    eval.eval_interval=50 \
+    bs=1 \
+    n_gpus=1
+```
+
+**Expected behavior:**
+- Config loads without errors
+- Model builds with M2F head (should see "Initializing the M2F segmentation model" in logs)
+- Training loop starts (should see "Train M2F:" progress logs)
+- Loss values are finite (not NaN or Inf)
+- Validation runs at iteration 50 and 100 (should see mIoU metrics)
+- Checkpoint saved to `./output/m2f_smoke_test/model_final.pth`
+
+**Note**: The smoke test uses `bs=1` and `n_gpus=1` to reduce memory requirements. For full training, use the config defaults (`bs=2`, `n_gpus=8`).
+
+**Implementation Note**: ~~After completing this phase and all automated verification passes, pause here for confirmation before proceeding to the next phase.~~
+
+**Status**: Phase 3 completed successfully. All verification tests passed:
+- ✅ All imports successful (train_m2f_segmentation, train_step_m2f, collate_m2f_batch, validate_m2f, etc.)
+- ✅ Collate function handles variable-length targets correctly
+- ✅ Collate handles empty targets
+- ✅ GPU training step completes with valid loss
+- ✅ Gradients flow through model parameters
+- ✅ Multiple training steps completed without NaN/explosion
+- ✅ Linear head training code (train.py) remains unchanged and imports work
+
+**Files Created**:
+- `dinov3/eval/segmentation/train_m2f.py` - Complete M2F training script with collate_m2f_batch, train_step_m2f, validate_m2f, and train_m2f_segmentation functions
+
+**Files Modified**:
+- `dinov3/eval/segmentation/run.py` - Added routing for M2F training (lines 34-40)
+
+**Implementation Adjustment**: Added `.float()` casts to predictions before loss computation in train_step_m2f (lines 179, 181, 187, 189) because the Hungarian matcher requires consistent dtypes between predictions (bfloat16 from autocast) and targets (float32).
 
 ---
 
