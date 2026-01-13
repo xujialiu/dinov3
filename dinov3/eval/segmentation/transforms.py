@@ -388,6 +388,57 @@ class MaskToTensor(torch.nn.Module):
         return img, Mask(label)
 
 
+class SemanticToM2FTargets(torch.nn.Module):
+    """Convert semantic segmentation mask to M2F target format.
+
+    This is for SEMANTIC SEGMENTATION (not instance segmentation).
+    Mask2Former's loss expects targets as per-class binary masks for Hungarian matching.
+
+    Converts a semantic mask [1, H, W] with class IDs per pixel to:
+    - masks: [N, H, W] binary mask per unique class present
+    - labels: [N] class ID for each mask
+
+    Where N is the number of unique classes in the image (excluding ignore_index).
+    Each class gets exactly one mask (semantic, not instance segmentation).
+    """
+
+    def __init__(self, num_classes: int, ignore_index: int = 255):
+        super().__init__()
+        self.num_classes = num_classes
+        self.ignore_index = ignore_index
+
+    def forward(self, img: torch.Tensor, label: torch.Tensor) -> Tuple[torch.Tensor, dict]:
+        # label shape: [1, H, W] or [H, W]
+        if label.dim() == 3:
+            label = label.squeeze(0)  # [H, W]
+
+        # Find unique classes present (excluding ignore_index)
+        unique_classes = torch.unique(label)
+        unique_classes = unique_classes[unique_classes != self.ignore_index]
+
+        if len(unique_classes) == 0:
+            # Edge case: no valid classes in crop
+            # Return empty tensors that MaskClassificationLoss can handle
+            H, W = label.shape
+            return img, {
+                "masks": torch.zeros((0, H, W), dtype=torch.float32),
+                "labels": torch.zeros((0,), dtype=torch.long),
+            }
+
+        # Create binary mask for each class (one mask per class = semantic segmentation)
+        masks = []
+        labels = []
+        for class_id in unique_classes:
+            mask = (label == class_id).float()  # [H, W] binary mask
+            masks.append(mask)
+            labels.append(class_id)
+
+        return img, {
+            "masks": torch.stack(masks, dim=0),  # [N, H, W]
+            "labels": torch.stack(labels, dim=0),  # [N]
+        }
+
+
 def make_segmentation_train_transforms(
     *,
     img_size: Optional[Union[List[int], int]] = None,
@@ -399,6 +450,8 @@ def make_segmentation_train_transforms(
     reduce_zero_label: bool = False,
     mean: Sequence[float] = [mean * 255 for mean in IMAGENET_DEFAULT_MEAN],
     std: Sequence[float] = [std * 255 for std in IMAGENET_DEFAULT_STD],
+    convert_to_m2f_format: bool = False,
+    num_classes: int = 150,
 ):
     # Label conversion to tensor
     transforms_list = [MaskToTensor()]  # type: List[Any]
@@ -436,6 +489,13 @@ def make_segmentation_train_transforms(
     # Pad if cropping was done previously
     if crop_size:
         transforms_list.append(PadTensor(pad_shape=crop_size, img_pad_value=0, label_pad_value=255))
+
+    # Convert semantic labels to M2F target format (per-class binary masks)
+    if convert_to_m2f_format:
+        transforms_list.append(SemanticToM2FTargets(
+            num_classes=num_classes,
+            ignore_index=255,
+        ))
 
     return v2.Compose(transforms_list)
 
