@@ -36,12 +36,6 @@ After this plan is complete:
      output_dir=./output/m2f_training \
      model.dino_hub=dinov3_vitl16 \
      datasets.root=./ADEChallengeData2016
-
-   # SLURM cluster (for full training)
-   PYTHONPATH=. python -m dinov3.run.submit dinov3/eval/segmentation/run.py \
-     config=dinov3/eval/segmentation/configs/config-ade20k-m2f-training.yaml \
-     model.dino_hub=dinov3_vitl16 \
-     --output-dir /path/to/output
    ```
 
 ### Verification:
@@ -1103,7 +1097,7 @@ print('  ✓ Linear head training code is unchanged')
 ```
 
 #### End-to-End Smoke Test (requires GPU and ADE20K dataset):
-This is the **final verification** that the complete M2F training pipeline works. Run a short training session (100 iterations) to verify all components integrate correctly.
+This is the **final verification** that the complete M2F training pipeline works. Run a minimal training session (10 iterations + 10 validation samples) to verify all components integrate correctly.
 
 ```bash
 # Single GPU smoke test - verifies complete pipeline
@@ -1112,8 +1106,9 @@ conda activate dinov3 && PYTHONPATH=. python dinov3/eval/segmentation/run.py \
     output_dir=./output/m2f_smoke_test \
     model.dino_hub=dinov3_vitl16 \
     datasets.root=./ADEChallengeData2016 \
-    scheduler.total_iter=100 \
-    eval.eval_interval=50 \
+    scheduler.total_iter=10 \
+    eval.eval_interval=10 \
+    eval.max_val_samples=10 \
     bs=1 \
     n_gpus=1
 ```
@@ -1123,10 +1118,10 @@ conda activate dinov3 && PYTHONPATH=. python dinov3/eval/segmentation/run.py \
 - Model builds with M2F head (should see "Initializing the M2F segmentation model" in logs)
 - Training loop starts (should see "Train M2F:" progress logs)
 - Loss values are finite (not NaN or Inf)
-- Validation runs at iteration 50 and 100 (should see mIoU metrics)
+- Validation runs at iteration 10 with 10 samples (should see mIoU metrics)
 - Checkpoint saved to `./output/m2f_smoke_test/model_final.pth`
 
-**Note**: The smoke test uses `bs=1` and `n_gpus=1` to reduce memory requirements. For full training, use the config defaults (`bs=2`, `n_gpus=8`).
+**Note**: The smoke test uses `bs=1`, `n_gpus=1`, and `eval.max_val_samples=10` for quick verification. For full training, use the config defaults.
 
 **Implementation Note**: ~~After completing this phase and all automated verification passes, pause here for confirmation before proceeding to the next phase.~~
 
