@@ -73,6 +73,21 @@ class TrainConfig:
 
 
 @dataclass
+class M2FTrainConfig:
+    """Mask2Former-specific training hyperparameters.
+
+    Note: no_object_coefficient is passed to MaskClassificationLoss which stores it as eos_coef.
+    """
+    num_points: int = 12544  # Points sampled for mask loss (112*112)
+    oversample_ratio: float = 3.0
+    importance_sample_ratio: float = 0.75
+    mask_coefficient: float = 5.0
+    dice_coefficient: float = 5.0
+    class_coefficient: float = 2.0
+    no_object_coefficient: float = 0.1
+
+
+@dataclass
 class TrainTransformConfig:
     img_size: Any = None
     random_img_size_ratio_range: tuple[float] | None = None
@@ -120,6 +135,7 @@ class SegmentationConfig:
     optimizer: OptimizerConfig = field(default_factory=OptimizerConfig)
     transforms: TransformConfig = field(default_factory=TransformConfig)
     train: TrainConfig = field(default_factory=TrainConfig)
+    m2f_train: M2FTrainConfig = field(default_factory=M2FTrainConfig)
     eval: EvalConfig = field(default_factory=EvalConfig)
     # Additional Parameters
     output_dir: str | None = None

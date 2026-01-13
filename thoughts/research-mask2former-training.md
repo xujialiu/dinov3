@@ -8,7 +8,9 @@
 
 ## Research Question
 
-How to add Mask2Former training support to the DINOv3 segmentation module, given that the repo currently only offers inference for M2F and training for linear head.
+How to add Mask2Former training support for **semantic segmentation** to the DINOv3 segmentation module, given that the repo currently only offers inference for M2F and training for linear head.
+
+**Scope Clarification**: This is for semantic segmentation only (per-pixel class labels). Mask2Former can handle instance/panoptic segmentation, but this implementation focuses solely on semantic segmentation. The M2F architecture uses query-based prediction which requires a different target format than traditional dense predictions, but the task remains semantic segmentation.
 
 ## Summary
 
@@ -93,15 +95,15 @@ def forward(
 ):
 ```
 
-**Expected Target Format**:
+**Expected Target Format** (M2F target format, NOT instance segmentation):
 ```python
 targets = [
-    {"masks": Tensor[N_i, H, W], "labels": Tensor[N_i]},  # Per-image instance masks
+    {"masks": Tensor[N_i, H, W], "labels": Tensor[N_i]},  # Per-class binary masks for each image
     ...
 ]
 ```
 
-Where `N_i` is the number of instances in image `i`.
+Where `N_i` is the number of unique classes present in image `i` (for semantic segmentation, each class = one mask).
 
 **Loss Components** (`loss_total` method at line 99-120):
 - `loss_mask_*`: Binary mask loss (weighted by `mask_coefficient`)
@@ -150,23 +152,29 @@ Where `N_i` is the number of instances in image `i`.
 ```python
 # Returns: (image_tensor, target_dict)
 # Where target_dict = {"masks": [N, H, W], "labels": [N]}
-# N = number of unique instances/classes in the image
+# N = number of unique classes present in the image crop
 ```
 
-**Conversion Needed**: Semantic mask `[H, W]` → Instance format `{"masks": [N, H, W], "labels": [N]}`
+**Conversion Needed**: Semantic mask `[H, W]` → M2F target format `{"masks": [N, H, W], "labels": [N]}`
 
-For semantic segmentation with M2F, each unique class becomes an "instance":
+**Important**: This is NOT instance segmentation. For semantic segmentation with M2F, each unique class present in the image becomes a separate binary mask. This is simply how Mask2Former's loss function expects targets for Hungarian matching. The task remains semantic segmentation (predicting class per pixel).
+
 ```python
-def semantic_to_instance_targets(semantic_mask, num_classes):
+def semantic_to_m2f_targets(semantic_mask, ignore_label=255):
+    """Convert semantic segmentation mask to M2F target format.
+
+    This is for semantic segmentation - each unique class becomes one mask.
+    NOT instance segmentation (where multiple objects of same class have separate masks).
+    """
     masks = []
     labels = []
-    for class_id in range(num_classes):
+    unique_classes = torch.unique(semantic_mask)
+    for class_id in unique_classes:
         if class_id == ignore_label:
             continue
         mask = (semantic_mask == class_id)
-        if mask.any():
-            masks.append(mask)
-            labels.append(class_id)
+        masks.append(mask)
+        labels.append(class_id)
     return {"masks": torch.stack(masks), "labels": torch.tensor(labels)}
 ```
 
@@ -227,8 +235,10 @@ Image → DINOv3_Adapter → Features[Dict] → M2FHead → {pred_masks, pred_lo
 GT[List[dict]] ─────────────────────────────→ MaskClassificationLoss
     ↑                                                (with Hungarian matching)
     │
-semantic_to_instance_targets()
+semantic_to_m2f_targets()  # Converts semantic mask to per-class binary masks
 ```
+
+**Note**: Both pipelines perform semantic segmentation. The difference is output format - linear head directly predicts per-pixel class logits, while M2F predicts query-based masks that are aggregated into semantic predictions during inference.
 
 ## Code References
 
@@ -258,18 +268,16 @@ semantic_to_instance_targets()
 ### What's Missing
 
 1. **M2F Training Config** - Need `config-ade20k-m2f-training.yaml`
-2. **Target Conversion Transform** - Convert semantic masks to instance format
-3. **M2F Train Step** - New function handling dict outputs and aux losses
-4. **Training Loop Integration** - Remove linear-only assertion, add M2F branch
-5. **Collate Function** - Handle variable-length instance lists per image
+2. **Target Conversion Transform** - Convert semantic masks to M2F target format (per-class binary masks)
+3. **M2F Training Script** - New `train_m2f.py` handling dict outputs and aux losses
+4. **Collate Function** - Handle variable-length target lists per image (varies by classes present in crop)
 
 ### Key Integration Points
 
-1. **train.py:150** - Remove/modify assertion to allow M2F
-2. **train.py:100-143** - Add M2F-specific train_step or modify existing
-3. **train.py:251-253** - Replace `MultiSegmentationLoss` with `MaskClassificationLoss` for M2F
-4. **transforms.py** - Add `SemanticToInstanceTargets` transform
-5. **config.py** - Add M2F-specific training parameters (loss coefficients)
+1. **New `train_m2f.py`** - Create standalone M2F training script (keep `train.py` for linear head only)
+2. **transforms.py** - Add `SemanticToM2FTargets` transform for converting semantic masks
+3. **config.py** - Add M2F-specific training parameters (loss coefficients)
+4. **run.py** - Route to `train_m2f.py` when decoder_head.type == "m2f"
 
 ## Appendix: MaskClassificationLoss Parameters
 

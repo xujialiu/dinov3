@@ -21,7 +21,7 @@ Meta AI Research's vision transformer for dense feature extraction. Provides pre
 
 ```bash
 # Activate environment
-conda activate nnunet
+conda activate dinov3
 
 # Linear segmentation training on ADE20K
 PYTHONPATH=. python -m dinov3.run.submit dinov3/eval/segmentation/run.py \
