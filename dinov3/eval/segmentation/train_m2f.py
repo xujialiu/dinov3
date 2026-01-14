@@ -355,7 +355,7 @@ def train_m2f_segmentation(backbone, config):
     metric_logger.add_meter("loss", SmoothedValue(window_size=4, fmt="{value:.3f}"))
     for batch in metric_logger.log_every(
         train_dataloader,
-        50,
+        10,
         header="Train M2F: ",
         start_iteration=global_step,
         n_iterations=total_iter,
