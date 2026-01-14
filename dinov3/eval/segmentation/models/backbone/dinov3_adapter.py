@@ -429,17 +429,6 @@ class DINOv3_Adapter(nn.Module):
         bs, _, dim = x_for_shape.shape
         del x_for_shape
 
-        cls, x = (
-            x[
-                :,
-                :1,
-            ],
-            x[
-                :,
-                5:,
-            ],
-        )
-
         outs = list()
         for i, layer in enumerate(self.interactions):
             x, cls = all_layers[i]
