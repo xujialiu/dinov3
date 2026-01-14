@@ -114,6 +114,8 @@ def validate_m2f(
     metric_to_save,
     current_best_metric_to_save_value,
     max_val_samples: int = 0,  # 0 means no limit
+    num_visualizations: int = 0,  # Number of samples to visualize
+    output_dir: str | None = None,  # Directory to save visualizations
 ):
     """Run validation and return metrics.
 
@@ -129,6 +131,9 @@ def validate_m2f(
         num_classes=num_classes,
         autocast_dtype=autocast_dtype,
         max_samples=max_val_samples,
+        num_visualizations=num_visualizations,
+        output_dir=output_dir,
+        global_step=global_step,
     )
     logger.info(f"Step {global_step}: {new_metric_values_dict}")
     # Put decoder back in train mode (backbone stays in eval mode)
@@ -392,6 +397,8 @@ def train_m2f_segmentation(backbone, config):
                 config.metric_to_save,
                 global_best_metric_values[config.metric_to_save],
                 max_val_samples=config.eval.max_val_samples,
+                num_visualizations=config.eval.num_visualizations,
+                output_dir=config.output_dir,
             )
             if is_better:
                 logger.info(f"New best metrics at Step {global_step}: {best_metric_values_dict}")
@@ -411,6 +418,8 @@ def train_m2f_segmentation(backbone, config):
             config.metric_to_save,
             global_best_metric_values[config.metric_to_save],
             max_val_samples=config.eval.max_val_samples,
+            num_visualizations=config.eval.num_visualizations,
+            output_dir=config.output_dir,
         )
         if is_better:
             logger.info(f"New best metrics at Step {global_step}: {best_metric_values_dict}")

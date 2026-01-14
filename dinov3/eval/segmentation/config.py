@@ -119,6 +119,7 @@ class EvalConfig:
     eval_interval: int = 40000
     use_tta: bool = False  # apply test-time augmentation at evaluation time
     max_val_samples: int = 0  # 0 means no limit, useful for smoke tests
+    num_visualizations: int = 0  # Number of samples to visualize during validation (0 = no visualization)
 
 
 @dataclass

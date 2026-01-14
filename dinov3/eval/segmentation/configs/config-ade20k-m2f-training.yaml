@@ -5,7 +5,7 @@ n_gpus: 8
 metric_to_save: 'mIoU'
 model_dtype: BFLOAT16
 scheduler:
-  total_iter: 160000
+  total_iter: 40000
   type: 'WarmupOneCycleLR'
   constructor_kwargs:
     warmup_iters: 1500
@@ -53,5 +53,6 @@ eval:
   mode: "slide"
   crop_size: 896
   stride: 596
-  eval_interval: 5000
+  eval_interval: 100
   use_tta: False
+  num_visualizations: 3

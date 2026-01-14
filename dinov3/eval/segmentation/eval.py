@@ -5,7 +5,10 @@
 
 from functools import partial
 import logging
+import os
 
+import numpy as np
+from PIL import Image
 import torch
 
 import dinov3.distributed as distributed
@@ -26,6 +29,19 @@ RESULTS_FILENAME = "results-semantic-segmentation.csv"
 MAIN_METRICS = ["mIoU"]
 
 
+def save_visualization(pred_mask: torch.Tensor, output_path: str):
+    """Save prediction mask as PNG with class indices as pixel values.
+
+    Args:
+        pred_mask: Prediction tensor of shape [H, W] with class indices
+        output_path: Path to save the PNG file
+    """
+    # Convert to numpy and save as grayscale PNG (preserving class indices)
+    pred_np = pred_mask.cpu().numpy().astype(np.uint8)
+    img = Image.fromarray(pred_np, mode='L')
+    img.save(output_path)
+
+
 def evaluate_segmentation_model(
     segmentation_model: torch.nn.Module,
     test_dataloader,
@@ -36,11 +52,21 @@ def evaluate_segmentation_model(
     num_classes,
     autocast_dtype,
     max_samples: int = 0,  # 0 means no limit
+    num_visualizations: int = 0,  # Number of samples to visualize
+    output_dir: str | None = None,  # Directory to save visualizations
+    global_step: int = 0,  # Current training iteration for naming
 ):
     segmentation_model = segmentation_model.to(device)
     segmentation_model.eval()
     all_metric_values = []
     metric_logger = MetricLogger(delimiter="  ")
+
+    # Create visualization directory if needed
+    vis_dir = None
+    if num_visualizations > 0 and output_dir is not None:
+        vis_dir = os.path.join(output_dir, "visualization", f"iter_{global_step}")
+        if distributed.get_rank() == 0:
+            os.makedirs(vis_dir, exist_ok=True)
 
     for sample_idx, (batch_img, (_, gt)) in enumerate(metric_logger.log_every(test_dataloader, 10, header="Validation: ")):
         if max_samples > 0 and sample_idx >= max_samples:
@@ -62,6 +88,14 @@ def evaluate_segmentation_model(
                 output_activation=partial(torch.nn.functional.softmax, dim=1),
             )
         aggregated_preds = (aggregated_preds / len(batch_img)).argmax(dim=1, keepdim=True).to(device)
+
+        # Save visualization for first num_visualizations samples (only on rank 0)
+        if sample_idx < num_visualizations and vis_dir is not None and distributed.get_rank() == 0:
+            pred_mask = aggregated_preds[0, 0]  # [H, W] with class indices
+            vis_path = os.path.join(vis_dir, f"sample_{sample_idx:04d}.png")
+            save_visualization(pred_mask, vis_path)
+            logger.info(f"Saved visualization to {vis_path}")
+
         intersect_and_union = calculate_intersect_and_union(
             aggregated_preds[0],
             gt,
