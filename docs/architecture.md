@@ -131,11 +131,14 @@ Each eval task follows consistent structure:
 ```
 eval/<task>/
 ├── run.py          # Entry point
-├── train.py        # Training loop
+├── train.py        # Training loop (linear head)
+├── train_m2f.py    # Training loop (Mask2Former)
 ├── eval.py         # Evaluation loop
+├── inference.py    # Sliding window inference
 ├── config.py       # Configuration dataclasses
 ├── loss.py         # Loss functions
 ├── metrics.py      # Evaluation metrics
+├── schedulers.py   # Learning rate schedulers
 ├── transforms.py   # Data augmentation
 └── models/         # Task-specific heads
     ├── heads/
