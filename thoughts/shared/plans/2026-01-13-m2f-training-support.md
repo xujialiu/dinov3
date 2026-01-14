@@ -1397,7 +1397,7 @@ No changes needed for evaluation - it already works with the checkpoint format w
 
 ## References
 
-- Research document: `thoughts/research-mask2former-training.md`
+- Research document: `thoughts/shared/research/2026-01-13-research-mask2former-training.md`
 - User's loss implementation: `dinov3/eval/segmentation/mask_classification_loss.py`
 - Mask2Former paper: Cheng et al., "Masked-attention Mask Transformer for Universal Image Segmentation"
 - HuggingFace implementation: `transformers.models.mask2former.modeling_mask2former`
