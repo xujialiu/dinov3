@@ -79,7 +79,7 @@ def evaluate_segmentation_model(
         metrics=["mIoU", "dice", "fscore"],
     )
     final_metrics = {k: round(v.cpu().item() * 100, 2) for k, v in final_metrics.items()}
-    logger.info(final_metrics)
+    logger.info(str(final_metrics))
     return final_metrics
 
 
