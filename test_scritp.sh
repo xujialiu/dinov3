@@ -51,12 +51,25 @@ CUDA_VISIBLE_DEVICES=0 python dinov3/eval/segmentation/run.py \
       eval.max_val_samples=10
 
 
-CUDA_VISIBLE_DEVICES=0 python dinov3/eval/segmentation/run.py \
+PYTHONPATH=. CUDA_VISIBLE_DEVICES=0 python dinov3/eval/segmentation/run.py \
       config=dinov3/eval/segmentation/configs/config-ade20k-m2f-training.yaml \
-      output_dir=./output/m2f \
+      output_dir=./output/m2f_reduce_zero_label_T \
       model.dino_hub=dinov3_vitl16 \
       datasets.root=../semantic_retina_vessel_segmentation \
       bs=3 \
       n_gpus=1 \
       eval.num_visualizations=3 \
-      decoder_head.num_classes=3
+      decoder_head.num_classes=3 \
+      eval.reduce_zero_label=true
+
+PYTHONPATH=. CUDA_VISIBLE_DEVICES=0 python dinov3/eval/segmentation/run.py \
+      config=dinov3/eval/segmentation/configs/config-ade20k-m2f-training.yaml \
+      output_dir=./output/m2f_reduce_zero_label_F \
+      model.dino_hub=dinov3_vitl16 \
+      datasets.root=../semantic_retina_vessel_segmentation \
+      bs=3 \
+      n_gpus=1 \
+      eval.num_visualizations=3 \
+      decoder_head.num_classes=4 \
+      eval.reduce_zero_label=false
+
