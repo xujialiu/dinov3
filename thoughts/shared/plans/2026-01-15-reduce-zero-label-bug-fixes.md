@@ -608,8 +608,8 @@ def sample_predictions_3class():
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] All tests pass: `PYTHONPATH=. pytest dinov3/eval/segmentation/tests/ -v`
-- [ ] Test coverage is reasonable: `PYTHONPATH=. pytest dinov3/eval/segmentation/tests/ --cov=dinov3.eval.segmentation.metrics --cov-report=term-missing`
+- [x] All tests pass: `PYTHONPATH=. pytest dinov3/eval/segmentation/tests/ -v`
+- [x] Test coverage is reasonable: `PYTHONPATH=. pytest dinov3/eval/segmentation/tests/ --cov=dinov3.eval.segmentation.metrics --cov-report=term-missing`
 
 ---
 
