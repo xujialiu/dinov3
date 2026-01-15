@@ -51,9 +51,10 @@ def calculate_segmentation_metrics(
         {
             "Class Index": np.arange(len(metrics_dict["mIoU"])),
             "mIoU": 100 * metrics_dict["mIoU"].cpu().numpy(),
+            "Dice": 100 * metrics_dict["dice"].cpu().numpy(),
         }
     )
-    logger.info(f"mIoU per class:\n{df.to_string(index=False)}")
+    logger.info(f"mIoU and Dice per class:\n{df.to_string(index=False)}")
     return {
         "mIoU": metrics_dict["mIoU"].nanmean(),
         "acc": metrics_dict["acc"].nanmean(),

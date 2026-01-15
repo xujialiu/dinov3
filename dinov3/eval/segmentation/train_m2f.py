@@ -360,6 +360,7 @@ def train_m2f_segmentation(backbone, config):
     # 4- Training loop
     metric_logger = MetricLogger(delimiter="  ")
     metric_logger.add_meter("loss", SmoothedValue(window_size=4, fmt="{value:.3f}"))
+    metric_logger.add_meter("lr", SmoothedValue(window_size=1, fmt="{value:.2e}"))
     for batch in metric_logger.log_every(
         train_dataloader,
         10,
@@ -382,7 +383,7 @@ def train_m2f_segmentation(backbone, config):
             global_step,
         )
         global_step += 1
-        metric_logger.update(loss=loss.item())
+        metric_logger.update(loss=loss.item(), lr=optimizer.param_groups[0]["lr"])
 
         # Periodic validation
         if global_step % config.eval.eval_interval == 0:
