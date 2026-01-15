@@ -73,3 +73,15 @@ PYTHONPATH=. CUDA_VISIBLE_DEVICES=0 python dinov3/eval/segmentation/run.py \
       decoder_head.num_classes=4 \
       eval.reduce_zero_label=false
 
+
+exp_num=1
+PYTHONPATH=. CUDA_VISIBLE_DEVICES=0 python dinov3/eval/segmentation/run.py \
+      config=dinov3/eval/segmentation/configs/config-retinal-artery-vein-seg-m2f-training.yaml \
+      output_dir=./output/m2f_retinal_artery_vein_seg_$exp_num \
+      model.dino_hub=dinov3_vitl16
+
+# test script
+PYTHONPATH=. CUDA_VISIBLE_DEVICES=0 python dinov3/eval/segmentation/run.py \
+      config=dinov3/eval/segmentation/configs/config-retinal-artery-vein-seg-m2f-training.yaml \
+      output_dir=./output/test \
+      model.dino_hub=dinov3_vitl16
