@@ -17,6 +17,7 @@ from dinov3.eval.segmentation.inference import make_inference
 from dinov3.eval.segmentation.metrics import (
     calculate_intersect_and_union,
     calculate_segmentation_metrics,
+    restore_original_labels,
 )
 from dinov3.eval.segmentation.models import build_segmentation_decoder
 from dinov3.eval.segmentation.transforms import make_segmentation_eval_transforms
@@ -55,6 +56,7 @@ def evaluate_segmentation_model(
     num_visualizations: int = 0,  # Number of samples to visualize
     output_dir: str | None = None,  # Directory to save visualizations
     global_step: int = 0,  # Current training iteration for naming
+    reduce_zero_label: bool = True,  # Whether to reduce label 0 (for datasets like ADE20K)
 ):
     segmentation_model = segmentation_model.to(device)
     segmentation_model.eval()
@@ -92,6 +94,8 @@ def evaluate_segmentation_model(
         # Save visualization for first num_visualizations samples (only on rank 0)
         if sample_idx < num_visualizations and vis_dir is not None and distributed.get_rank() == 0:
             pred_mask = aggregated_preds[0, 0]  # [H, W] with class indices
+            if reduce_zero_label:
+                pred_mask = restore_original_labels(pred_mask)
             vis_path = os.path.join(vis_dir, f"sample_{sample_idx:04d}.png")
             save_visualization(pred_mask, vis_path)
             logger.info(f"Saved visualization to {vis_path}")
@@ -100,7 +104,7 @@ def evaluate_segmentation_model(
             aggregated_preds[0],
             gt,
             num_classes=num_classes,
-            reduce_zero_label=True,
+            reduce_zero_label=reduce_zero_label,
         )
         all_metric_values.append(intersect_and_union)
         del img, gt, aggregated_preds, intersect_and_union
@@ -181,4 +185,5 @@ def test_segmentation(backbone, config):
         decoder_head_type=config.decoder_head.type,
         num_classes=config.decoder_head.num_classes,
         autocast_dtype=config.model_dtype.autocast_dtype,
+        reduce_zero_label=config.eval.reduce_zero_label,
     )

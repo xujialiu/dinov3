@@ -271,9 +271,9 @@ return evaluate_segmentation_model(
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] All unit tests pass: `PYTHONPATH=. pytest dinov3/eval/segmentation/tests/ -v`
-- [ ] Type checking passes (if configured): `mypy dinov3/eval/segmentation/eval.py`
-- [ ] No import errors: `python -c "from dinov3.eval.segmentation.eval import evaluate_segmentation_model"`
+- [x] All unit tests pass: `PYTHONPATH=. pytest dinov3/eval/segmentation/tests/ -v`
+- [x] Type checking passes (if configured): `mypy dinov3/eval/segmentation/eval.py` (no new errors from Phase 2 changes; pre-existing errors unrelated to this plan)
+- [x] No import errors: `python -c "from dinov3.eval.segmentation.eval import evaluate_segmentation_model"`
 
 ---
 

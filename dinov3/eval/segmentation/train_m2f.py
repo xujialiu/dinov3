@@ -116,6 +116,7 @@ def validate_m2f(
     max_val_samples: int = 0,  # 0 means no limit
     num_visualizations: int = 0,  # Number of samples to visualize
     output_dir: str | None = None,  # Directory to save visualizations
+    reduce_zero_label: bool = True,  # Whether to reduce label 0 (for datasets like ADE20K)
 ):
     """Run validation and return metrics.
 
@@ -134,6 +135,7 @@ def validate_m2f(
         num_visualizations=num_visualizations,
         output_dir=output_dir,
         global_step=global_step,
+        reduce_zero_label=reduce_zero_label,
     )
     logger.info(f"Step {global_step}: {new_metric_values_dict}")
     # Put decoder back in train mode (backbone stays in eval mode)
@@ -399,6 +401,7 @@ def train_m2f_segmentation(backbone, config):
                 max_val_samples=config.eval.max_val_samples,
                 num_visualizations=config.eval.num_visualizations,
                 output_dir=config.output_dir,
+                reduce_zero_label=config.eval.reduce_zero_label,
             )
             if is_better:
                 logger.info(f"New best metrics at Step {global_step}: {best_metric_values_dict}")
@@ -420,6 +423,7 @@ def train_m2f_segmentation(backbone, config):
             max_val_samples=config.eval.max_val_samples,
             num_visualizations=config.eval.num_visualizations,
             output_dir=config.output_dir,
+            reduce_zero_label=config.eval.reduce_zero_label,
         )
         if is_better:
             logger.info(f"New best metrics at Step {global_step}: {best_metric_values_dict}")
