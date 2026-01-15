@@ -73,6 +73,22 @@ def preprocess_nonzero_labels(label, ignore_index=255):
     return label_new
 
 
+def restore_original_labels(reduced_labels: torch.Tensor) -> torch.Tensor:
+    """Reverse the label reduction mapping.
+
+    When reduce_zero_label=True, model predicts classes [0, 1, 2, ...N-1]
+    which correspond to original classes [1, 2, 3, ...N].
+    This function restores predictions to the original label space.
+
+    Args:
+        reduced_labels: Tensor with reduced class indices (0-indexed)
+
+    Returns:
+        Tensor with original class indices (1-indexed)
+    """
+    return reduced_labels + 1
+
+
 def calculate_intersect_and_union(pred_label, label, num_classes, ignore_index=255, reduce_zero_label=False):
     """Calculate intersection and Union.
     Args:
